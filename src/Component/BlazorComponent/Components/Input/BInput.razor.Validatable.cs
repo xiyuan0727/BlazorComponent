@@ -61,10 +61,9 @@ namespace BlazorComponent
         public IEnumerable<Func<TValue, StringBoolean>> Rules
         {
             get => GetValue<IEnumerable<Func<TValue, StringBoolean>>>();
-            set => SetValue<IEnumerable<Func<TValue, StringBoolean>>, TValue>(value, nameof(Value));
+            set => SetValue(value);
         }
 
-        private bool _resetStatus;
         private bool _forceStatus;
 
         protected virtual TValue DefaultValue => default;
@@ -379,18 +378,12 @@ namespace BlazorComponent
 
         protected virtual void InternalValidate()
         {
-            if (_resetStatus)
-            {
-                _resetStatus = false;
-                return;
-            }
-
             if (EditContext != null && !EqualityComparer<FieldIdentifier>.Default.Equals(ValueIdentifier, default))
             {
                 EditContext.NotifyFieldChanged(ValueIdentifier);
             }
 
-            if (Rules != null)
+            if (Rules != null && Rules.Any())
             {
                 ErrorBucket.Clear();
 
@@ -408,9 +401,16 @@ namespace BlazorComponent
                     StateHasChanged();
                 }
             }
+
+            Form?.UpdateValidValue();
         }
 
-        protected bool ForceValidate(TValue? val = default)
+        public bool Validate()
+        {
+            return Validate(default);
+        }
+
+        protected bool Validate(TValue? val)
         {
             var force = true;
 
@@ -425,7 +425,7 @@ namespace BlazorComponent
                 HasFocused = true;
             }
 
-            if (Rules != null)
+            if (Rules != null && Rules.Any())
             {
                 var value = val is null ? InternalValue : val;
 
@@ -446,20 +446,12 @@ namespace BlazorComponent
             return valid;
         }
 
-        public bool Validate()
-        {
-            _resetStatus = false;
-            return ForceValidate();
-        }
-
         public void Reset()
         {
             ErrorBucket.Clear();
 
             HasInput = false;
             HasFocused = false;
-
-            _resetStatus = true;
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (ValueIdentifier.Model is not null)
